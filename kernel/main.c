@@ -270,7 +270,7 @@ int check_ldr_pc(int vect_addr) {
 
 int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused)), uint32_t table)
 {
-    printf("Starting kmain up /n");
+    printf("Starting kmain up \n");
 	app_startup();
 	global_data = table;
 	/* add your code up to assert statement */
@@ -288,7 +288,7 @@ int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused))
         return 0xBADC0DE;
     }
 
-    printf("starting wiring in of SWI and IRQ handlers");
+    printf("starting wiring in of SWI and IRQ handlers \n");
     // Install our SWI and IRQ handlers
     wire_in_handler(SWI_VECT_ADDR, (int) &swi_handler, &old_swi_handler, &swi_instr0, &swi_instr1);
     wire_in_handler(IRQ_VECT_ADDR, (int) &irq_wrapper, &old_irq_handler, &irq_instr0, &irq_instr1);
