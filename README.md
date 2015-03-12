@@ -1,1 +1,0 @@
-Lord please help me finish this 
