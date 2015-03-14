@@ -57,7 +57,9 @@ int user_setup_stack_ptr;
 
 /* Sleep for ms amount of time */
 void sleep(unsigned int ms){
-	unsigned int current_time = os_time;
+    printf("I'm in sleep \n");
+	
+    unsigned int current_time = os_time;
 	while(1){ // loop until correct amount of time has passed 
 		if (current_time + ms <= os_time){
 			return;
@@ -88,6 +90,8 @@ int check_mem(char *buf, int count, unsigned start, unsigned end) {
 
 // write function to replace the system's write function
 ssize_t write_handler(int fd, const void *buf, size_t count) {
+    printf("I'm write_handler \n");    
+
     // Check for invalid memory range or file descriptors
     if (check_mem((char *) buf, (int) count, SDRAM_START, SDRAM_END) == FALSE &&
         check_mem((char *) buf, (int) count, SFROM_START, SFROM_END) == FALSE) {
@@ -111,6 +115,8 @@ ssize_t write_handler(int fd, const void *buf, size_t count) {
 
 // read function to replace the system's read function
 ssize_t read_handler(int fd, void *buf, size_t count) {
+    
+    printf("I'm read_handler \n");
     // Check for invalid memory range or file descriptors
     if (check_mem((char *) buf, (int) count, SDRAM_START, SDRAM_END) == FALSE) {
         return EFAULT;
@@ -153,6 +159,7 @@ ssize_t read_handler(int fd, void *buf, size_t count) {
 int C_SWI_Handler(int swiNum, int *regs) {
     // switch to appropriate swi call
     int count = 0;
+    printf("I'm in C_SWI_Handler so my handler is probably wired in correctly \n");
     switch (swiNum) {
         // call read handler for read swi
         case READ_SWI:
@@ -194,7 +201,11 @@ int C_SWI_Handler(int swiNum, int *regs) {
 }
 
 void C_IRQ_Handler() {
-    //printf("IRQ\n");
+    printf("in IRQ handler \n");
+    printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
+    printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
+    printf("os time is: %d, \n",os_time );
+
 	int trigger, OSCR, OSSR;
 	OSCR = reg_read(OSTMR_OSCR_ADDR); //grab oscr and ossr
 	OSSR = reg_read(OSTMR_OSSR_ADDR);
@@ -202,7 +213,8 @@ void C_IRQ_Handler() {
 	if (OSSR == 1) // Checking that the interupt came from M0 == OSCR
 	{
 		os_time += 10;
-		trigger = OSCR + (OSTMR_FREQ / 100); // Set next trigger up
+        // TODO: see if the frequency is the problem with the hanging
+		trigger = OSCR + (OSTMR_FREQ); // Set next trigger up
 
 		reg_write(OSTMR_OSMR_ADDR(0), trigger); 
 
@@ -214,16 +226,17 @@ void C_IRQ_Handler() {
 }
 
 void wire_in_handler(int vect_addr, int new_handler, int* old_handler, int* instr0, int* instr1) {
-	 // Given the location of a vector_address and a new handler, 
-	 // wire in the new handler, and save the first two instructions
-	 // of the old handler
-	
+	printf("I'm in wire_in_handler \n");
+
+    // Given the location of a vector_address and a new handler, 
+	// wire in the new handler, and save the first two instructions
+	// of the old handler
 	// Jump offset already incorporates PC offset. Usually 0x10 or 0x14.
     int jmp_offset = (*((int *) vect_addr))&(0xFFF);
 
     // &S_Handler" in Jump Table.
     int *swi_handler_addr = *(int **)(vect_addr + PC_OFFSET + jmp_offset);
-
+    printf("address of of old handler is %x \n", (int)(swi_handler_addr));
     // Save original Uboot SWI handler instructions.
     int swi_instr_1 = *swi_handler_addr;
     int swi_instr_2 = *(swi_handler_addr + 1);
@@ -231,6 +244,8 @@ void wire_in_handler(int vect_addr, int new_handler, int* old_handler, int* inst
     // Wire in our own: LDR pc, [pc, #-4] = 0xe51ff004
     *swi_handler_addr = LDR_PC_PC4_INSTR;
     *(swi_handler_addr + 1) = new_handler; // New swi handler.
+    printf("address of handler is %x \n", new_handler);
+    printf("address of of implanted handler is %x \n", *(swi_handler_addr + 1));
 
     *old_handler = (int) swi_handler_addr;
     *instr0 = swi_instr_1;
@@ -271,7 +286,10 @@ int check_ldr_pc(int vect_addr) {
 int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused)), uint32_t table)
 {
     printf("Starting kmain up \n");
-	app_startup();
+    printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
+    printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
+
+    app_startup();
 	global_data = table;
 	/* add your code up to assert statement */
 
@@ -290,8 +308,10 @@ int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused))
 
     printf("starting wiring in of SWI and IRQ handlers \n");
     // Install our SWI and IRQ handlers
-    wire_in_handler(SWI_VECT_ADDR, (int) &swi_handler, &old_swi_handler, &swi_instr0, &swi_instr1);
+
+    printf("Address of irq_wrapper is: %x, Address of swi_handler is: %x \n", (int)&irq_wrapper, (int)&swi_handler);
     wire_in_handler(IRQ_VECT_ADDR, (int) &irq_wrapper, &old_irq_handler, &irq_instr0, &irq_instr1);
+    wire_in_handler(SWI_VECT_ADDR, (int) &swi_handler, &old_swi_handler, &swi_instr0, &swi_instr1);
     printf("old_swi_handler: %x swi_instr0: %x, swi_instr1: %x\n", old_swi_handler, swi_instr0, swi_instr1);    // Set up the stack
     
     printf("pushing args\n");

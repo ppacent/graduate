@@ -40,6 +40,7 @@ void fun2(void* str)
 
 int main(int argc, char** argv)
 {
+	printf("In dagger main \n");
 	printf("In dagger main %d%d\n", argc, (int) argv);
 	// argc = 10;
 	// argv = (char**) 10;

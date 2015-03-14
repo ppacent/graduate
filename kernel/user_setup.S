@@ -19,25 +19,42 @@
 
     .global user_setup
 user_setup:
+    stmfd sp!, {r0-r12, lr}
+    mrs r0, cpsr
+    bic r0, #0xdf
+    orr r0, r0, #0x50
+    msr cpsr, r0
+    ldmfd sp!, {r0}
+    mov sp, r0
+    mov pc, #0xa0000000
+    nop
+    nop
+    nop
+    nop
+
+
+
+
+
     @ Save gp registers, lr, and cpsr so that we can return to kernel main later.
-    stmfd   sp!, {r1-r12, lr}
-    mrs     r2, cpsr
-    stmfd   sp!, {r2}
+    @stmfd   sp!, {r1-r12, lr}
+    @mrs     r2, cpsr
+    @stmfd   sp!, {r2}
 
     @ Save the stack pointer in a global variable for exit_handler.S.
-    ldr     r2, =user_setup_stack_ptr
-    str     sp, [r2] @ *user_setup_stack_ptr = sp
+    @ldr     r2, =user_setup_stack_ptr
+    @str     sp, [r2] @ *user_setup_stack_ptr = sp
 
     @ change mode to USER
-    mrs     r2, cpsr
-    bic     r2, r2, #0xFF
-    orr     r2, r2, #0x50  @ Change mode bits to user and enable IRQs.
-    msr     cpsr, r2
+    @mrs     r2, cpsr
+    @bic     r2, #0xFF @ Clear I, F, T, and Mode flags in CPSR
+    @orr     r2, #0x50  @ Change mode bits to user and enable IRQs.
+    @msr     cpsr, r2
 
     @ set up user stack from spTop passed in from kernel.c
-    mov     sp, r0
+    @mov     sp, r0
 
     @ go to user program
-    ldr     pc, =0xa0000000
+    @ldr     pc, =0xa0000000
 
     @@@ exit syscall essentially returns through here!
