@@ -57,27 +57,41 @@ static void __attribute__((unused)) idle(void)
  */
 void allocate_tasks(task_t** tasks  __attribute__((unused)), size_t num_tasks  __attribute__((unused)))
 {
+
+	// Set up runqueue, mutex, and dev
+	sched_init(tasks[0]); // Task is unused in function
+	task_t* task_list = *tasks;
+
+	/* Set up the system tcb */
 	// Add all the tasks to the system_tcb array with the data in the appropriate struct format
 	size_t i;
-	for (i = 1; i < num_tasks; i++)
+
+
+	/* For some reason, task_list[1] contains 0th task */
+	for (i = 1; i < num_tasks+1; i++)
 	{
 		system_tcb[i].native_prio = i;
 		system_tcb[i].cur_prio = i;
 
 		// Set up registers with appropriate values
-		system_tcb[i].context.r4 = (uint32_t) tasks[i]->lambda;
-		system_tcb[i].context.r5 = (uint32_t) tasks[i]->data;
-		system_tcb[i].context.r6 = (uint32_t) tasks[i]->stack_pos;
-		system_tcb[i].context.sp = tasks[i]->stack_pos;
-		system_tcb[i].context.lr = &launch_task;
+		printf("\nPrinting task info in for loop...\n");
+		printf("Lambda is: %x, data is: %x, stack position is: %x\n",(uint32_t)task_list[i].lambda,
+		(uint32_t)task_list[i].data, (uint32_t)task_list[i].stack_pos );
+		printf("sp is: %x, lr/launch_task is %x \n\n",system_tcb[i].kstack_high,launch_task);
+
+		system_tcb[i].context.r4 = (uint32_t) task_list[i].lambda;
+		system_tcb[i].context.r5 = (uint32_t) task_list[i].data;
+		system_tcb[i].context.r6 = (uint32_t) task_list[i].stack_pos;
+		system_tcb[i].context.sp = system_tcb[i].kstack_high; //TODO: double check that (sp twice) is what I want
+		system_tcb[i].context.lr = launch_task;
 
 		// Initially neither sleeping nor locking
 		system_tcb[i].holds_lock = 0; 
 		system_tcb[i].sleep_queue = 0;
 		
 		// Set kernel stack to appropriate area 
-		system_tcb[i].kstack[0] = (uint32_t) tasks[i]->stack_pos;
-		system_tcb[i].kstack_high[0] = (uint32_t) tasks[i]->stack_pos + OS_KSTACK_SIZE/sizeof(uint32_t);
+		//system_tcb[i].kstack[0] = (uint32_t) tasks[i]->stack_pos;
+		//system_tcb[i].kstack_high[0] = (uint32_t) tasks[i]->stack_pos + OS_KSTACK_SIZE/sizeof(uint32_t);
 
 		// Add task to the run queue
 		runqueue_add(&system_tcb[i], system_tcb[i].cur_prio);
@@ -87,19 +101,22 @@ void allocate_tasks(task_t** tasks  __attribute__((unused)), size_t num_tasks  _
 	system_tcb[IDLE_PRIO].native_prio = IDLE_PRIO;
 	system_tcb[IDLE_PRIO].cur_prio = IDLE_PRIO;
 
-	system_tcb[IDLE_PRIO].context.r4 = (int)idle;
-	system_tcb[IDLE_PRIO].context.r6 = (int)&idle_stack;
-	system_tcb[IDLE_PRIO].context.sp = &idle_stack + OS_KSTACK_SIZE/sizeof(uint32_t);
-	system_tcb[IDLE_PRIO].context.lr = &launch_task;
+	system_tcb[IDLE_PRIO].context.r4 = (int)&idle;
+	system_tcb[IDLE_PRIO].context.r5 = 0;
+	system_tcb[IDLE_PRIO].context.r6 = (int)system_tcb[IDLE_PRIO].kstack;
+	system_tcb[IDLE_PRIO].context.sp = system_tcb[IDLE_PRIO].kstack_high;
+	system_tcb[IDLE_PRIO].context.lr = launch_task;
 
 	system_tcb[IDLE_PRIO].holds_lock = 0;
 	system_tcb[IDLE_PRIO].sleep_queue = 0;
 	
-	system_tcb[IDLE_PRIO].kstack[0] = (int)&idle_stack;
-	system_tcb[IDLE_PRIO].kstack_high[0] = (int)&idle_stack + OS_KSTACK_SIZE/sizeof(uint32_t);
+	//system_tcb[IDLE_PRIO].kstack[0] = (int)&idle_stack;
+	//system_tcb[IDLE_PRIO].kstack_high[0] = (int)&idle_stack + OS_KSTACK_SIZE/sizeof(uint32_t);
 
 	runqueue_add(&system_tcb[IDLE_PRIO], IDLE_PRIO);
 
+
+	printf("Tasks allocated, now going to dispatch \n");
 	// start running highest priority task
 	dispatch_nosave();
 }

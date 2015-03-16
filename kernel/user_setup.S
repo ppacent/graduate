@@ -20,11 +20,13 @@
     .global user_setup
 user_setup:
     stmfd sp!, {r0-r12, lr}
-    mrs r0, cpsr
-    bic r0, #0xdf
-    orr r0, r0, #0x50
-    msr cpsr, r0
-    ldmfd sp!, {r0}
+    mrs r2, cpsr
+    bic r2, #0xdf
+    orr r2, r2, #0xd0
+    bic r2, #0x80
+
+    msr cpsr, r2
+    ldmfd sp!, {r2}
     mov sp, r0
     mov pc, #0xa0000000
     nop

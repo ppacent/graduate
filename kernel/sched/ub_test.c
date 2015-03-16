@@ -12,6 +12,7 @@
 #include <math.h>
 #ifdef DEBUG
 #include <exports.h>
+#include "task.h"
 #endif
 /* Simple insertion for tasks sorting by priorty */ 
 void insertion_sort(task_t** tasks, size_t num_tasks){

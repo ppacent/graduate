@@ -1,17 +1,32 @@
-/** @file read.S
+/** @file write.S
  *
- * @brief read sycall wrapper
+ * @brief write sycall wrapper
  *
- * @author Mike Kasick <mkasick@andrew.cmu.edu>
- * @date   Sun, 07 Oct 2007 01:53:16 -0400
  * 
- * @author Kartik Subramanian <ksubrama@andrew.cmu.edu>
- * @date 2008-10-29
+ * @author Peter Pacent <ppacent@andrew.cmu.edu>
  */
 
 #include <asm.h>
+#include <bits/swi.h>
 
-	.file "read.S"
+    .file "read.S"
 
 FUNC(read)
-	@ Add code here.  Put your names at the top.
+    push {lr} @ store lr prior to swi call
+    swi READ_SWI @make the system call
+
+    @ Return on success
+
+    cmp r0, #0 @success
+    blt error
+    pop {lr}
+    mov pc, lr @pl means >= 0
+error:
+    @ Store the absolute value of return value in errno
+    neg r0, r0
+    ldr r1, =errno
+    str r0, [r1]
+
+    @ Store -1 in return value
+    mov r0, #-1
+    mov pc, lr

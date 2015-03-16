@@ -57,7 +57,7 @@ int user_setup_stack_ptr;
 
 /* Sleep for ms amount of time */
 void sleep(unsigned int ms){
-    printf("I'm in sleep \n");
+    //printf("I'm in sleep \n");
 	
     unsigned int current_time = os_time;
 	while(1){ // loop until correct amount of time has passed 
@@ -66,6 +66,8 @@ void sleep(unsigned int ms){
 		}
 	}
 }
+
+
 
 /* Verifies that the buffer is entirely in valid memory. */
 int check_mem(char *buf, int count, unsigned start, unsigned end) {
@@ -90,7 +92,7 @@ int check_mem(char *buf, int count, unsigned start, unsigned end) {
 
 // write function to replace the system's write function
 ssize_t write_handler(int fd, const void *buf, size_t count) {
-    printf("I'm write_handler \n");    
+    //printf("I'm write_handler \n");    
 
     // Check for invalid memory range or file descriptors
     if (check_mem((char *) buf, (int) count, SDRAM_START, SDRAM_END) == FALSE &&
@@ -116,7 +118,7 @@ ssize_t write_handler(int fd, const void *buf, size_t count) {
 // read function to replace the system's read function
 ssize_t read_handler(int fd, void *buf, size_t count) {
     
-    printf("I'm read_handler \n");
+    //printf("I'm read_handler \n");
     // Check for invalid memory range or file descriptors
     if (check_mem((char *) buf, (int) count, SDRAM_START, SDRAM_END) == FALSE) {
         return EFAULT;
@@ -167,6 +169,7 @@ int C_SWI_Handler(int swiNum, int *regs) {
             break;
         // Call write handler for write SWI
         case WRITE_SWI:
+            printf("in write_swi\n");
             count = write_handler((int) regs[0], (void *) regs[1], (size_t) regs[2]);
             break;
         // update time for time swi
@@ -193,7 +196,7 @@ int C_SWI_Handler(int swiNum, int *regs) {
         	count = event_wait((unsigned int) regs[0]);
         	break;
         default:
-            printf("Error in ref C_SWI_Handler: Invalid SWI number.");
+            printf("Ohhhh, dayummm error in ref C_SWI_Handler: Invalid SWI number.");
             invalid_syscall(swiNum); // never returns
     }
 
@@ -202,9 +205,9 @@ int C_SWI_Handler(int swiNum, int *regs) {
 
 void C_IRQ_Handler() {
     printf("in IRQ handler \n");
-    printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
-    printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
-    printf("os time is: %d, \n",os_time );
+    //printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
+    //printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
+    //printf("os time is: %d, \n",os_time );
 
 	int trigger, OSCR, OSSR;
 	OSCR = reg_read(OSTMR_OSCR_ADDR); //grab oscr and ossr
@@ -226,7 +229,6 @@ void C_IRQ_Handler() {
 }
 
 void wire_in_handler(int vect_addr, int new_handler, int* old_handler, int* instr0, int* instr1) {
-	printf("I'm in wire_in_handler \n");
 
     // Given the location of a vector_address and a new handler, 
 	// wire in the new handler, and save the first two instructions
@@ -236,7 +238,6 @@ void wire_in_handler(int vect_addr, int new_handler, int* old_handler, int* inst
 
     // &S_Handler" in Jump Table.
     int *swi_handler_addr = *(int **)(vect_addr + PC_OFFSET + jmp_offset);
-    printf("address of of old handler is %x \n", (int)(swi_handler_addr));
     // Save original Uboot SWI handler instructions.
     int swi_instr_1 = *swi_handler_addr;
     int swi_instr_2 = *(swi_handler_addr + 1);
@@ -244,8 +245,8 @@ void wire_in_handler(int vect_addr, int new_handler, int* old_handler, int* inst
     // Wire in our own: LDR pc, [pc, #-4] = 0xe51ff004
     *swi_handler_addr = LDR_PC_PC4_INSTR;
     *(swi_handler_addr + 1) = new_handler; // New swi handler.
-    printf("address of handler is %x \n", new_handler);
-    printf("address of of implanted handler is %x \n", *(swi_handler_addr + 1));
+    //printf("address of handler is %x \n", new_handler);
+    //printf("address of of implanted handler is %x \n", *(swi_handler_addr + 1));
 
     *old_handler = (int) swi_handler_addr;
     *instr0 = swi_instr_1;
@@ -285,9 +286,9 @@ int check_ldr_pc(int vect_addr) {
 
 int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused)), uint32_t table)
 {
-    printf("Starting kmain up \n");
-    printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
-    printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
+    //printf("Starting kmain up \n");
+    //printf("swi handler address: %x, irq handler address %x \n", *(int *)SWI_VECT_ADDR, *(int *)IRQ_VECT_ADDR);
+    //printf("swi handler address+1: %x, irq handler address+1 %x \n", *(int *)(SWI_VECT_ADDR+1), *(int *)(IRQ_VECT_ADDR+1));
 
     app_startup();
 	global_data = table;
@@ -306,17 +307,15 @@ int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused))
         return 0xBADC0DE;
     }
 
-    printf("starting wiring in of SWI and IRQ handlers \n");
+    //printf("starting wiring in of SWI and IRQ handlers \n");
     // Install our SWI and IRQ handlers
 
-    printf("Address of irq_wrapper is: %x, Address of swi_handler is: %x \n", (int)&irq_wrapper, (int)&swi_handler);
+    //printf("Address of irq_wrapper is: %x, Address of swi_handler is: %x \n", (int)&irq_wrapper, (int)&swi_handler);
     wire_in_handler(IRQ_VECT_ADDR, (int) &irq_wrapper, &old_irq_handler, &irq_instr0, &irq_instr1);
     wire_in_handler(SWI_VECT_ADDR, (int) &swi_handler, &old_swi_handler, &swi_instr0, &swi_instr1);
-    printf("old_swi_handler: %x swi_instr0: %x, swi_instr1: %x\n", old_swi_handler, swi_instr0, swi_instr1);    // Set up the stack
+    //printf("old_swi_handler: %x swi_instr0: %x, swi_instr1: %x\n", old_swi_handler, swi_instr0, swi_instr1);    // Set up the stack
     
-    printf("pushing args\n");
     push_args(USER_STACK_TOP, argc, argv, &sp_top);
-    printf("sp_top:%x\n",sp_top);
 
 	// Init timer and allow it to trigger interrupts
 	reg_write(OSTMR_OSSR_ADDR, 0x0); // clear status reg
@@ -330,7 +329,7 @@ int kmain(int argc __attribute__((unused)), char** argv  __attribute__((unused))
 
 
     irq_setup();
-    printf("switching to user\n");
+    printf("Wiring in and timer setup finished, switching to user\n");
     return user_setup((int *)sp_top);
     printf("Shouldn't get here\n");
 

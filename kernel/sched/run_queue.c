@@ -84,6 +84,8 @@ void runqueue_init(void)
 void runqueue_add(tcb_t* tcb  __attribute__((unused)), uint8_t prio  __attribute__((unused)))
 {
 	/* Use directives from Lab 4 Recitation */ 
+	// Update priority of the task
+	tcb->cur_prio = prio;
 
 	// Set task at run list index prio to task
 	run_list[prio] = tcb;
@@ -103,16 +105,21 @@ void runqueue_add(tcb_t* tcb  __attribute__((unused)), uint8_t prio  __attribute
  */
 tcb_t* runqueue_remove(uint8_t prio  __attribute__((unused)))
 {
-	/* Use directives from Lab 4 Recitation */ 
+	if (prio == IDLE_PRIO) { // If it's asking for the
+		// idle task, then don't remove it from the queue
+		return run_list[IDLE_PRIO];
+	}
 
+
+	/* Use directives from Lab 4 Recitation */ 
 	tcb_t* tcbRemove = run_list[prio];
 	// Clear the run list flag for the priority designated
 	run_list[prio] = 0;
 	// Set the run bits to be 0 for the appropriate priority index within the group
-	run_bits[prio >> 3] = run_bits[prio >> 3] ^ (1 << (prio & 0x07));
+	run_bits[prio >> 3] = run_bits[prio >> 3] & ~(1 << (prio & 0x07));
 	// Set the group_run_bits to be 0 for the appropriate group only if no other tasks are runnable
 	if (run_bits[prio >> 3] == 0) {
-		group_run_bits = (1 << (prio >> 3)) ^ group_run_bits;
+		group_run_bits = ~(1 << (prio >> 3)) & group_run_bits;
 	}
 	return tcbRemove;
 }
@@ -123,6 +130,7 @@ tcb_t* runqueue_remove(uint8_t prio  __attribute__((unused)))
  */
 uint8_t highest_prio(void)
 {
+
 	/* Use optimization from Lab 4 Recitation */ 
 	uint8_t y = prio_unmap_table[group_run_bits];
 	uint8_t x = prio_unmap_table[run_bits[y]];

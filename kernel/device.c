@@ -15,6 +15,7 @@
 #include <arm/reg.h>
 #include <arm/psr.h>
 #include <arm/exception.h>
+#include "arm/timer.h"
 
 /**
  * @brief Fake device maintainence structure.
@@ -50,7 +51,8 @@ void dev_init(void)
 	int i;
 	for (i = 0; i < NUM_DEVICES; i++) {
 		devices[i].sleep_queue=0; // Set each sleep queue to iniially be empty
-		devices[i].next_match=dev_freq[i]; // Set each next_match to be the appropriate
+		devices[i].next_match=dev_freq[i] + os_time; 
+		// Set each next_match to be the appropriate
 		// Time from dev_freq
 	}
 
@@ -78,7 +80,7 @@ void dev_wait(unsigned int dev __attribute__((unused)))
 	// Set end of sleep queue to point to current task
 	queueTask->sleep_queue = curTask;
 	// Make sure sleep q pointer of current task is at device's sleep queue
-	curTask->sleep_queue = devices[dev].sleep_queue;
+	curTask->sleep_queue = 0; // sleep_queue at end of line
 }
 
 
@@ -112,9 +114,10 @@ void dev_update(unsigned long millis __attribute__((unused)))
 				// clear sleep_queue value for tasks leaving sleep queue
 				lastTask->sleep_queue = 0;
 			}
-		// Update next match for the next match
-		devices[i].next_match = os_time + dev_freq[i];
+			// Update next match for the next match
+			devices[i].next_match += dev_freq[i];
 		}
 	}
 }
+
 

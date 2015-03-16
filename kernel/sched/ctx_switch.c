@@ -30,7 +30,10 @@ static __attribute__((unused)) tcb_t* cur_tcb; /* use this if needed */
  */
 void dispatch_init(tcb_t* idle __attribute__((unused)))
 {
+	// initially just idle, so set idle as the current task
 	cur_tcb = idle;
+	// Add the idle task to the run queue
+	runqueue_add(idle, IDLE_PRIO);
 }
 
 
@@ -45,15 +48,18 @@ void dispatch_init(tcb_t* idle __attribute__((unused)))
 void dispatch_save(void)
 {
 	disable_interrupts();
-	// get the highest priority task
-	tcb_t* new_task = runqueue_remove(highest_prio());
+	// Save current task to runqueue unless it's the idle task
+	// If it's the idle task then it's already permanently in the runqueue
+	if (cur_tcb->cur_prio != IDLE_PRIO) {
+		runqueue_add(cur_tcb, cur_tcb->cur_prio);
+	}
 
-	// Add task to the run_queue
-	runqueue_add(new_task, new_task->cur_prio);
+	// get the highest priority task
+	tcb_t* new_tcb = runqueue_remove(highest_prio());
 
 	// Context switch to new task
-	ctx_switch_full(&(new_task->context), &(cur_tcb->context));
-	cur_tcb = new_task;
+	ctx_switch_full(&(new_tcb->context), &(cur_tcb->context));
+	cur_tcb = new_tcb;
 	enable_interrupts();
 }
 
@@ -64,17 +70,44 @@ void dispatch_save(void)
  * There is always an idle task to switch to.
  */
 void dispatch_nosave(void)
-{
+{	
+	printf("Into dispatch_nosave \n");
 	disable_interrupts();
 	// get the highest priority task
-	tcb_t* new_task = runqueue_remove(highest_prio());
+	printf("Removing task from runqueue \n");
+	tcb_t* new_tcb = runqueue_remove(highest_prio());
+	printf("Task now removed, half ctx switching to new task \n");
+	printf("tcb info: \n");
+	printf("&new_tcb->context = %x\n", &new_tcb->context);
+	printf("((&(new_tcb->context.r4))) = %x\n",((&(new_tcb->context.r4))));
+	printf("((&(new_tcb->context.r5))) = %x\n",((&(new_tcb->context.r5))));
+	printf("((&(new_tcb->context.r6))) = %x\n",((&(new_tcb->context.r6))));
+	printf("((&(new_tcb->context.r7))) = %x\n",((&(new_tcb->context.r7))));
+	printf("((&(new_tcb->context.r8))) = %x\n",((&(new_tcb->context.r8))));
+	printf("((&(new_tcb->context.r9))) = %x\n",((&(new_tcb->context.r9))));
+	printf("((&(new_tcb->context.r10))) = %x\n",((&(new_tcb->context.r10))));
+	printf("((&(new_tcb->context.r11))) = %x\n",((&(new_tcb->context.r11))));
 
-	// Add task to the run_queue
-	runqueue_add(new_task, new_task->cur_prio);
+	printf("((&(new_tcb->context.sp))) = %x\n",((&(new_tcb->context.sp))));
+	printf("((&(new_tcb->context.lr))) = %x\n",((&(new_tcb->context.lr))));
+
+	printf("*(int*)((&(new_tcb->context))) = %x\n", *(int*)((&(new_tcb->context)))); 
+	printf("new_tcb->context.sp = %x\n", new_tcb->context.sp); 
+	printf("new_tcb->context.lr = %x\n", new_tcb->context.lr);
+	printf("new_tcb->context.r4 = %x\n", new_tcb->context.r4);
+	printf("new_tcb->context.r5 = %x\n", new_tcb->context.r5);
+	printf("new_tcb->context.r6 = %x\n", new_tcb->context.r6);
+	printf("new_tcb->context.r7 = %x\n", new_tcb->context.r7);
+	printf("new_tcb->context.r8 = %x\n", new_tcb->context.r8);
+	printf("new_tcb->context.r9 = %x\n", new_tcb->context.r9);
+
+	printf("launch task location is = %x\n", launch_task);
+
 
 	// Context switch to new task
-	ctx_switch_half(&(new_task->context));
-	cur_tcb = new_task;
+	ctx_switch_half(&(new_tcb->context));
+	printf("Returned from half context switch in dispatch nosave \n");
+	cur_tcb = new_tcb;
 	enable_interrupts();
 }
 
@@ -89,12 +122,15 @@ void dispatch_sleep(void)
 {
 	disable_interrupts();
 	// get the highest priority task
-	runqueue_remove(cur_tcb->cur_prio);
-	tcb_t* new_task = runqueue_remove(highest_prio());
-
+	tcb_t* new_tcb = runqueue_remove(highest_prio());
+	// IF highest priority task is current task, 
+	// remove the next highest task
+	if (new_tcb == cur_tcb) {
+		new_tcb = runqueue_remove(highest_prio());
+	}
 	// Context switch to new task
-	ctx_switch_full(&(new_task->context), &(cur_tcb->context));
-	cur_tcb = new_task;
+	ctx_switch_full(&(new_tcb->context), &(cur_tcb->context));
+	cur_tcb = new_tcb;
 	enable_interrupts();	
 }
 
@@ -112,4 +148,9 @@ uint8_t get_cur_prio(void)
 tcb_t* get_cur_tcb(void)
 {
 	return cur_tcb; //simply return cur_tcb
+}
+
+void print(int * r0){
+	printf("address of r0 is %x \n", (int)r0);
+	printf("Contents are %x\n",*r0);
 }

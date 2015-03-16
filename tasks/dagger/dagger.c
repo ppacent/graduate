@@ -20,6 +20,7 @@ void panic(const char* str)
 
 void fun1(void* str)
 {
+	puts("Into fun1!! \n");
 	while(1)
 	{
 		putchar((int)str);
@@ -30,6 +31,8 @@ void fun1(void* str)
 
 void fun2(void* str)
 {
+	puts("Into fun2!! \n");
+
 	while(1)
 	{
 		putchar((int)str);
@@ -40,26 +43,33 @@ void fun2(void* str)
 
 int main(int argc, char** argv)
 {
-	printf("In dagger main \n");
-	printf("In dagger main %d%d\n", argc, (int) argv);
-	// argc = 10;
-	// argv = (char**) 10;
-	// task_t tasks[2];
-	// tasks[0].lambda = fun1;
-	// tasks[0].data = (void*)'@';
-	// tasks[0].stack_pos = (void*)0xa2000000;
-	// tasks[0].C = 1;
-	// tasks[0].T = PERIOD_DEV0;
-	// tasks[1].lambda = fun2;
-	// tasks[1].data = (void*)'<';
-	// tasks[1].stack_pos = (void*)0xa1000000;
-	// tasks[1].C = 1;
-	// tasks[1].T = PERIOD_DEV1;
+	puts("Welcome to Dagger!!!!\n");
+	//write(STDOUT_FILENO, "shitttttt", 7);
+	argc = 10;
+	argv = (char**) 10;
+	task_t tasks[2];
+	tasks[0].lambda = fun1;
+	tasks[0].data = (void*)'@';
+	tasks[0].stack_pos = (void*)0xa2000000;
+	tasks[0].C = 1;
+	tasks[0].T = PERIOD_DEV0;
+	tasks[1].lambda = fun2;
+	tasks[1].data = (void*)'<';
+	tasks[1].stack_pos = (void*)0xa1000000;
+	tasks[1].C = 1;
+	tasks[1].T = PERIOD_DEV1;
+	char buf[15];
+	puts("Hello hi how you dere ");
+	//puts((char)tasks[1].lambda);
+	//puts((char)tasks[1].data);
 
-	// task_create(tasks, 2);
-	// argc=argc; // remove compiler warning 
-	// argv[0]=argv[0]; // remove compiler warning 
+	//puts("Entering task_create function \n");
+	task_create(tasks, 2);
+	puts("left task_create function, entering infinite \n");
+	argc=argc; // remove compiler warning 
+	argv[0]=argv[0]; // remove compiler warning 
 
-	// puts("Why did your code get here!\n");
+	puts("Why did your code get here!\n");
 	return 0;
 }
+

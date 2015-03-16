@@ -14,6 +14,7 @@
 
 #include <asm.h>
 #include <arm/psr.h>
+#include <arm/swi.h>
 
 /**
  * @brief Special exit routine from the scheduler that launches a task for the
@@ -35,20 +36,22 @@ FUNC(launch_task)
 	msr     cpsr_c, #(PSR_MODE_USR)
 	mov     sp, r6
 	mov     r6, #0
-	ldr     lr, =0xdeadbeef   /* Causes a crash instead of calling the reset vector */
+	ldr     lr, =0xdeadbeef   @ Causes a crash instead of calling the reset vector 
 	mov     pc, r4
 
 /* r0 points to the target context, r1 to the current context. */
 /* add your code to perform a full context switch */
 FUNC(ctx_switch_full)
-	// Save registers for the task we're leaving
-	stmia r1!, {r4-r11,lr,sp}
-	// Load the new task
-	ldmia r0!, {r4-r11,lr,sp}
+	@ Save registers for the task were leaving
+	stmia r1, {r4-r11,sp,lr}
+	@ Load the new task
+	ldmia r0, {r4-r11,sp,lr}
 	mov pc, lr
 
 /*add your code to perform a half context switch */	
 FUNC(ctx_switch_half)
-	// Load the new task
-	ldmia r0!, {r4-r11,lr,sp}
+	@ Load the new task without saving the current 
+	@b print
+	ldmia r0, {r4-r11,sp,lr}
+	b print
 	mov pc, lr
